@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score
 
 
 def createScatterPlot(list_of_samples):
@@ -23,6 +24,34 @@ def createScatterPlot(list_of_samples):
     plt.show()
 
 
+def plot_svc_decision_function(model, ax=None, plot_support=True):
+    """Plot the decision function for a 2D SVC"""
+    if ax is None:
+        ax = plt.gca()
+    xlim = ax.get_xlim()
+    ylim = ax.get_ylim()
+
+    # create grid to evaluate model
+    x = np.linspace(xlim[0], xlim[1], 30)
+    y = np.linspace(ylim[0], ylim[1], 30)
+    Y, X = np.meshgrid(y, x)
+    xy = np.vstack([X.ravel(), Y.ravel()]).T
+    P = model.decision_function(xy).reshape(X.shape)
+
+    # plot decision boundary and margins
+    ax.contour(X, Y, P, colors='k',
+               levels=[-1, 0, 1], alpha=0.5,
+               linestyles=['--', '-', '--'])
+
+    # plot support vectors
+    if plot_support:
+        ax.scatter(model.support_vectors_[:, 0],
+                   model.support_vectors_[:, 1],
+                   s=50, linewidth=1, facecolors='none', edgecolor='black');
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+
+
 def main():
     # Read the wine dataset
     dataset = load_wine()
@@ -38,9 +67,26 @@ def main():
     # createScatterPlot(train_df)
     # createScatterPlot(val_df)
     # ******** Q1.2
-    model = SVC(kernel='linear', C=1.0)
-    model.fit(train_df.iloc[:,:-1].values,train_df["target"])
+    X = train_df.iloc[:, :-1].values
+    Y = train_df["target"]
+    X_val = val_df.iloc[:, :-1].values
+    Y_val = val_df["target"]
+    set1 = [X, Y]
+    set2 = [X_val, Y_val]
+    margins=[]
+    for c in [0.01, 0.05, 0.1]:
+        for set in [set1, set2]:
+            model = SVC(kernel='linear', C=c)
+            model.fit(set[0], set[1])
+            plt.scatter(set[0][:, 0], set[0][:, 1], c=set[1], s=50, cmap='autumn')
+            plot_svc_decision_function(model)
+            plt.title('scatter with C=' + str(c))
+            plt.show()
+            margins.append(1 / (np.sqrt(np.sum(model.coef_ ** 2))))
+            accuracy_score()
 
+
+    # *********
 
 if __name__ == "__main__":
     main()
